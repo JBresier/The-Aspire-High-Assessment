@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet">
+<title>Responses Dashboard | Aspire High</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-900:#0E2547;--navy-800:#12294D;--navy-700:#1B3A6B;--navy-600:#254B7D;
+    --blue:#1257A8;--blue-bright:#1E7BE0;--blue-soft:#4FA3F2;
+    --gold:#E0A526;--gold-dark:#C58C13;--gold-light:#F5C661;
+    --sky:#EDF3FA;--sky-2:#F6FAFE;--line:#D3E1F2;--line-strong:#B9CFE8;
+    --ink:#0E2547;--ink-soft:#4A6485;--ink-mute:#7B91AE;
+    --ok:#12A86B;--warn:#D48020;--bad:#C0392B;
+    --display:"Archivo",system-ui,sans-serif;
+    --body:"Public Sans",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --shadow-sm:0 1px 2px rgba(14,37,71,.06),0 1px 3px rgba(14,37,71,.04);
+    --shadow-md:0 4px 10px -2px rgba(14,37,71,.08),0 2px 6px -1px rgba(14,37,71,.05);
+    --shadow-lg:0 20px 40px -20px rgba(14,37,71,.3);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--sky);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;height:100%;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer}
+  *::selection{background:rgba(224,165,38,.3);color:var(--navy-900)}
+
+  /* ============ SETUP SCREEN ============ */
+  .setup-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,var(--navy-900) 0%,var(--navy-700) 100%)}
+  .setup{max-width:480px;width:100%;background:#fff;border-radius:20px;padding:40px;box-shadow:var(--shadow-lg)}
+  .setup .mark{display:flex;align-items:center;gap:12px;margin:0 0 24px}
+  .setup .mark .dot{width:40px;height:40px;border-radius:12px;background:var(--navy-900);display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:var(--display);font-weight:800;font-size:18px}
+  .setup .mark .txt{display:flex;flex-direction:column;line-height:1.2}
+  .setup .mark .txt .mono{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue)}
+  .setup .mark .txt strong{font-family:var(--display);font-weight:800;color:var(--navy-900);font-size:16px}
+  .setup h1{font-family:var(--display);font-size:24px;margin:0 0 8px;letter-spacing:-.015em;color:var(--navy-900)}
+  .setup p.sub{margin:0 0 20px;color:var(--ink-soft);font-size:14px}
+  .setup label{display:block;font-family:var(--display);font-weight:600;font-size:12.5px;color:var(--navy-900);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+  .setup input{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-family:var(--body);font-size:14px;color:var(--ink);background:#fff;transition:border-color .15s,box-shadow .15s}
+  .setup input:focus{border-color:var(--blue-bright);outline:none;box-shadow:0 0 0 3px rgba(30,123,224,.14)}
+  .setup .btn-primary{width:100%;margin-top:20px;padding:14px;background:var(--gold);color:var(--navy-900);border:0;border-radius:10px;font-family:var(--body);font-weight:700;font-size:15px;transition:background .15s,color .15s,transform .15s}
+  .setup .btn-primary:hover{background:var(--gold-dark);color:#fff;transform:translateY(-1px)}
+  .setup .hint{font-size:12px;color:var(--ink-mute);margin-top:14px;line-height:1.5}
+
+  /* ============ APP SHELL ============ */
+  .app{display:grid;grid-template-columns:260px 340px 1fr;height:100vh;min-height:600px}
+  @media (max-width:1100px){.app{grid-template-columns:72px 320px 1fr}.sidebar .label{display:none}.sidebar .nav-item{justify-content:center;padding:14px}.sidebar .brand .txt{display:none}}
+  @media (max-width:800px){.app{grid-template-columns:1fr;height:auto;min-height:100vh}.sidebar,.list-pane{display:none}.app.has-list .sidebar,.app.has-list .list-pane{display:block}.app.has-list .detail-pane{display:none}}
+
+  /* --- Sidebar --- */
+  .sidebar{background:var(--navy-900);color:#fff;display:flex;flex-direction:column;padding:22px 14px}
+  .sidebar .brand{display:flex;align-items:center;gap:12px;padding:0 10px 22px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:12px}
+  .sidebar .brand .dot{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--navy-900);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;font-size:16px;flex-shrink:0;box-shadow:0 2px 8px rgba(224,165,38,.3)}
+  .sidebar .brand .txt{line-height:1.25;overflow:hidden}
+  .sidebar .brand .mono{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8DA7C7;display:block;margin:0 0 2px;white-space:nowrap}
+  .sidebar .brand strong{font-family:var(--display);font-weight:800;color:#fff;font-size:15px;letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .sidebar .nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;color:#C3D6EC;background:transparent;border:0;width:100%;text-align:left;font-size:14px;font-weight:500;transition:background .15s,color .15s}
+  .sidebar .nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+  .sidebar .nav-item.active{background:var(--navy-700);color:#fff}
+  .sidebar .nav-item .ico{width:18px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--gold-light)}
+  .sidebar .nav-item.active .ico{color:var(--gold)}
+  .sidebar .nav-item .badge{margin-left:auto;background:var(--navy-700);color:#C3D6EC;font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:999px;font-weight:600}
+  .sidebar .nav-item.active .badge{background:var(--gold);color:var(--navy-900)}
+  .sidebar .spacer{flex:1}
+  .sidebar .foot{padding:12px;font-family:var(--mono);font-size:10px;color:#6B86A8;letter-spacing:.1em;text-transform:uppercase;text-align:center;border-top:1px solid rgba(255,255,255,.06);margin-top:12px}
+
+  /* --- List pane --- */
+  .list-pane{background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+  .list-head{padding:20px 22px 14px;border-bottom:1px solid var(--line)}
+  .list-head h2{font-family:var(--display);font-weight:800;color:var(--navy-900);font-size:18px;margin:0 0 4px;letter-spacing:-.01em}
+  .list-head .count-line{font-size:12.5px;color:var(--ink-soft);display:flex;align-items:center;gap:8px}
+  .list-head .count-line .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block}
+  .search-box{position:relative;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--sky-2)}
+  .search-box input{width:100%;padding:10px 12px 10px 36px;border:1.5px solid var(--line);border-radius:10px;font-family:var(--body);font-size:13.5px;color:var(--ink);background:#fff;transition:border-color .15s,box-shadow .15s}
+  .search-box input:focus{border-color:var(--blue-bright);outline:none;box-shadow:0 0 0 3px rgba(30,123,224,.14)}
+  .search-box::before{content:"🔍";position:absolute;left:24px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.5;pointer-events:none}
+  .list-scroll{flex:1;overflow-y:auto}
+  .row{padding:14px 18px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:background .12s;border-left:3px solid transparent;position:relative}
+  .row:hover{background:var(--sky-2)}
+  .row.active{background:#fff;border-left-color:var(--gold);box-shadow:inset -4px 0 0 var(--gold) }
+  .row.active::before{content:"";position:absolute;right:0;top:0;bottom:0;width:4px;background:var(--gold)}
+  .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--display);font-weight:700;font-size:13px;flex-shrink:0;letter-spacing:.02em}
+  .row .info{flex:1;min-width:0}
+  .row .name{font-family:var(--display);font-weight:600;color:var(--navy-900);font-size:14px;margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .meta{font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 4px}
+  .row .date{font-family:var(--mono);font-size:10.5px;color:var(--blue);letter-spacing:.04em}
+  .row-empty{padding:40px 20px;text-align:center;color:var(--ink-mute);font-size:13px}
+
+  /* --- Detail pane --- */
+  .detail-pane{background:var(--sky);overflow-y:auto}
+  .detail-wrap{max-width:900px;margin:0 auto;padding:28px 36px 60px}
+  @media (max-width:720px){.detail-wrap{padding:20px}}
+
+  /* Section filter tabs */
+  .sec-tabs{display:flex;gap:6px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;margin:0 0 18px;box-shadow:var(--shadow-sm)}
+  .sec-tab{padding:8px 14px;border-radius:8px;border:0;background:transparent;color:var(--ink-soft);font-family:var(--body);font-weight:600;font-size:13px;letter-spacing:.01em;transition:background .12s,color .12s;white-space:nowrap}
+  .sec-tab:hover{background:var(--sky);color:var(--navy-900)}
+  .sec-tab.active{background:var(--navy-900);color:#fff}
+  .sec-tab.active.all{background:var(--gold);color:var(--navy-900)}
+  .sec-tab .n{font-family:var(--mono);font-size:11px;margin-right:4px;opacity:.7}
+  .sec-tab.active .n{opacity:1}
+
+  /* Enlarged single-section view */
+  .section-focus{background:#fff;border:1px solid var(--line);border-radius:18px;padding:0;overflow:hidden;box-shadow:var(--shadow-md)}
+  .section-focus .focus-head{background:linear-gradient(135deg,var(--navy-900),var(--navy-700));color:#fff;padding:28px 32px;position:relative;overflow:hidden}
+  .section-focus .focus-head::before{content:"";position:absolute;inset:0;background:radial-gradient(500px 200px at 100% -20%,rgba(224,165,38,.22),transparent 60%);pointer-events:none}
+  .section-focus .focus-head > *{position:relative;z-index:1}
+  .section-focus .focus-head .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#C3D6EC;margin:0 0 8px;display:flex;align-items:center;gap:10px}
+  .section-focus .focus-head .eyebrow::before{content:"";width:26px;height:2px;background:var(--gold)}
+  .section-focus .focus-head h2{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:-.018em;margin:0 0 6px;line-height:1.2}
+  .section-focus .focus-head .meta{font-size:13px;color:#D7E3F3}
+  .section-focus .focus-body{padding:8px 32px 28px}
+  @media (max-width:600px){.section-focus .focus-head{padding:22px 20px}.section-focus .focus-body{padding:8px 20px 20px}}
+
+  .big-qa{padding:22px 0;border-bottom:1px solid var(--line)}
+  .big-qa:last-child{border-bottom:0}
+  .big-qa .q{display:flex;gap:16px;align-items:flex-start;margin:0 0 14px}
+  .big-qa .q .num{font-family:var(--mono);font-weight:700;font-size:13px;color:#fff;background:var(--navy-800);border-radius:8px;padding:5px 10px;min-width:42px;text-align:center;flex-shrink:0;line-height:1.2;box-shadow:var(--shadow-sm)}
+  .big-qa .q .txt{flex:1;font-family:var(--display);font-weight:600;color:var(--navy-900);font-size:17px;line-height:1.45;letter-spacing:-.005em;padding-top:4px}
+  .big-qa .a{margin-left:58px;color:var(--ink);font-size:15px;line-height:1.6}
+  .big-qa .a.empty{color:var(--ink-mute);font-style:italic}
+
+  /* Bigger chips in focus view */
+  .big-qa .chips .chip{font-size:13.5px;padding:7px 14px;background:var(--sky);border-color:var(--line-strong);font-weight:600}
+
+  /* Bigger scale in focus view */
+  .big-qa .scale-vis{padding:12px 20px;gap:14px}
+  .big-qa .scale-vis .d{width:14px;height:14px}
+  .big-qa .scale-vis .val{font-size:18px}
+  .big-qa .scale-vis .val .sub{font-size:13px}
+
+  /* By-section global comparison view */
+  .cmp-head{background:linear-gradient(135deg,var(--navy-900),var(--navy-700));border-radius:18px;padding:32px 34px;color:#fff;margin:0 0 20px;position:relative;overflow:hidden;box-shadow:var(--shadow-md)}
+  .cmp-head::before{content:"";position:absolute;inset:0;background:radial-gradient(700px 400px at 90% -20%,rgba(224,165,38,.22),transparent 60%);pointer-events:none}
+  .cmp-head > *{position:relative;z-index:1}
+  .cmp-head .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#C3D6EC;margin:0 0 8px;display:flex;align-items:center;gap:10px}
+  .cmp-head .eyebrow::before{content:"";width:26px;height:2px;background:var(--gold)}
+  .cmp-head h1{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.018em;margin:0 0 4px;line-height:1.2}
+  .cmp-head p{margin:0;color:#D7E3F3;font-size:14px}
+
+  .cmp-sec-picker{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;box-shadow:var(--shadow-sm)}
+  .cmp-sec-picker label{font-family:var(--display);font-weight:600;font-size:13px;color:var(--navy-900);margin-right:4px}
+  .cmp-sec-picker select{padding:9px 12px;border:1.5px solid var(--line);border-radius:9px;font-family:var(--body);font-size:13.5px;color:var(--navy-900);background:#fff;font-weight:600;flex:1;min-width:200px}
+  .cmp-sec-picker select:focus{border-color:var(--blue-bright);outline:none;box-shadow:0 0 0 3px rgba(30,123,224,.14)}
+
+  .cmp-q{background:#fff;border:1px solid var(--line);border-radius:14px;margin:0 0 14px;overflow:hidden;box-shadow:var(--shadow-sm)}
+  .cmp-q .cq-head{padding:16px 22px;background:var(--sky-2);border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:12px}
+  .cmp-q .cq-head .num{font-family:var(--mono);font-weight:700;font-size:12px;color:#fff;background:var(--navy-800);border-radius:7px;padding:4px 9px;min-width:38px;text-align:center;flex-shrink:0;line-height:1.2}
+  .cmp-q .cq-head .txt{flex:1;font-family:var(--display);font-weight:700;color:var(--navy-900);font-size:14.5px;line-height:1.4}
+  .cmp-q .cq-body{padding:4px 0}
+  .cmp-row{display:grid;grid-template-columns:200px 1fr;gap:16px;padding:12px 22px;border-bottom:1px dashed var(--line);align-items:center;cursor:pointer;transition:background .12s}
+  .cmp-row:last-child{border-bottom:0}
+  .cmp-row:hover{background:var(--sky-2)}
+  .cmp-row .who{display:flex;gap:10px;align-items:center;min-width:0}
+  .cmp-row .who .avatar{width:28px;height:28px;font-size:11px;border-radius:50%;flex-shrink:0}
+  .cmp-row .who .wn{font-family:var(--display);font-weight:600;color:var(--navy-900);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cmp-row .ans{font-size:13px;color:var(--ink)}
+  .cmp-row .ans .chips .chip{font-size:12px;padding:3px 9px}
+  @media (max-width:600px){.cmp-row{grid-template-columns:1fr;gap:4px}.cmp-row .ans{padding-left:38px}}
+
+  /* Scale summary chart */
+  .scale-summary{display:flex;align-items:center;gap:10px;padding:14px 22px;background:var(--sky-2);border-bottom:1px solid var(--line)}
+  .scale-summary .sl{font-family:var(--mono);font-size:10.5px;color:var(--blue);letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+  .scale-summary .ss-avg{font-family:var(--display);font-weight:800;color:var(--navy-900);font-size:20px}
+  .scale-summary .ss-bars{display:flex;gap:4px;flex:1;max-width:220px;align-items:flex-end;height:36px}
+  .scale-summary .ss-bars .b{flex:1;background:var(--line);border-radius:3px 3px 0 0;position:relative;min-height:2px;transition:background .15s}
+  .scale-summary .ss-bars .b.hi{background:var(--gold)}
+  .scale-summary .ss-bars .b.lo{background:var(--navy-700)}
+  .scale-summary .ss-bars .b .nn{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9.5px;color:var(--ink-soft)}
+
+  /* Home state (stats) */
+  .home-hero{background:linear-gradient(135deg,var(--navy-900) 0%,var(--navy-700) 100%);border-radius:20px;padding:36px 32px;color:#fff;position:relative;overflow:hidden;margin:0 0 20px}
+  .home-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 400px at 100% -20%,rgba(224,165,38,.22),transparent 60%),radial-gradient(700px 400px at 0 120%,rgba(30,123,224,.22),transparent 60%);pointer-events:none}
+  .home-hero > *{position:relative;z-index:1}
+  .home-hero .mono{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#C3D6EC;margin:0 0 10px;display:flex;align-items:center;gap:10px}
+  .home-hero .mono::before{content:"";width:26px;height:2px;background:var(--gold)}
+  .home-hero h1{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:-.018em;margin:0 0 6px;line-height:1.15}
+  .home-hero p{margin:0;color:#D7E3F3;font-size:14.5px;max-width:52ch}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:0 0 24px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
+  .stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+  .stat .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);margin:0 0 6px;display:flex;align-items:center;gap:6px}
+  .stat .v{font-family:var(--display);font-weight:800;font-size:28px;color:var(--navy-900);line-height:1;letter-spacing:-.02em;margin:0 0 4px}
+  .stat .sub{font-size:12.5px;color:var(--ink-soft)}
+
+  .section-promo{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin:0 0 16px;box-shadow:var(--shadow-sm)}
+  .section-promo h3{font-family:var(--display);font-weight:800;font-size:16px;color:var(--navy-900);margin:0 0 4px;letter-spacing:-.01em}
+  .section-promo p{margin:0 0 14px;color:var(--ink-soft);font-size:13.5px}
+  .kbd{display:inline-block;padding:2px 7px;background:var(--sky);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;font-family:var(--mono);font-size:11px;color:var(--navy-900);margin:0 3px}
+
+  /* Detail header */
+  .person-head{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px 26px;margin:0 0 18px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .person-head .avatar-lg{width:56px;height:56px;font-size:18px;border-radius:14px;box-shadow:var(--shadow-md)}
+  .person-head .pinfo{flex:1;min-width:200px}
+  .person-head h1{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.015em;color:var(--navy-900);margin:0 0 4px;line-height:1.2}
+  .person-head .pmeta{font-size:13.5px;color:var(--ink-soft);display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+  .person-head .pmeta a{color:var(--blue);text-decoration:none}
+  .person-head .pmeta a:hover{text-decoration:underline}
+  .person-head .pmeta .mono{font-family:var(--mono);font-size:11.5px;color:var(--blue);letter-spacing:.06em}
+
+  /* Toolbar */
+  .toolbar{display:flex;gap:8px;margin:0 0 18px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:9px;border:1.5px solid var(--line);background:#fff;color:var(--navy-900);font-weight:600;font-size:13px;transition:border-color .15s,background .15s,transform .15s,color .15s}
+  .btn:hover{border-color:var(--blue-bright);transform:translateY(-1px)}
+  .btn-gold{background:var(--gold);color:var(--navy-900);border-color:var(--gold)}
+  .btn-gold:hover{background:var(--gold-dark);color:#fff;border-color:var(--gold-dark)}
+  .btn-navy{background:var(--navy-900);color:#fff;border-color:var(--navy-900)}
+  .btn-navy:hover{background:var(--navy-800);color:#fff;border-color:var(--navy-800)}
+  .btn-ghost{background:transparent;border:1.5px solid transparent;color:var(--ink-soft)}
+  .btn-ghost:hover{background:var(--sky);color:var(--navy-900);border-color:var(--line)}
+
+  /* Section cards */
+  .section{background:#fff;border:1px solid var(--line);border-radius:14px;margin:0 0 12px;box-shadow:var(--shadow-sm);overflow:hidden;transition:box-shadow .15s}
+  .section:hover{box-shadow:var(--shadow-md)}
+  .section-head{padding:16px 22px;background:#fff;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:14px;transition:background .15s}
+  .section-head:hover{background:var(--sky-2)}
+  .section-head-left{display:flex;align-items:center;gap:14px;flex:1;min-width:0}
+  .section-num{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--navy-800),var(--navy-700));color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;font-size:15px;flex-shrink:0;box-shadow:0 2px 6px rgba(14,37,71,.2)}
+  .section.open .section-num{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--navy-900);box-shadow:0 2px 8px rgba(224,165,38,.4)}
+  .section-head h3{font-family:var(--display);font-weight:700;font-size:15px;color:var(--navy-900);margin:0 0 2px;letter-spacing:-.01em;line-height:1.3}
+  .section-head .ans-count{font-size:11.5px;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
+  .section-head .ans-count .pill{background:var(--sky);border-radius:999px;padding:2px 9px;font-family:var(--mono);font-size:10.5px;color:var(--navy-700);font-weight:600}
+  .section-head .caret{color:var(--ink-mute);transition:transform .25s;font-size:13px;flex-shrink:0;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--sky)}
+  .section.open .section-head .caret{transform:rotate(90deg);background:var(--sky-2);color:var(--navy-700)}
+  .section-body{display:none;padding:4px 22px 20px;border-top:1px solid var(--line);background:var(--sky-2)}
+  .section.open .section-body{display:block;animation:slide .22s ease-out}
+  @keyframes slide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+  /* Q&A */
+  .qa{padding:14px 0;border-bottom:1px dashed var(--line)}
+  .qa:last-child{border-bottom:0}
+  .qa .q{font-family:var(--display);font-weight:600;color:var(--navy-900);font-size:14px;margin:0 0 10px;display:flex;gap:12px;align-items:flex-start;line-height:1.45}
+  .qa .q .num{font-family:var(--mono);font-weight:700;font-size:11px;color:var(--navy-900);background:#fff;border:1px solid var(--line);border-radius:6px;padding:3px 7px;min-width:34px;text-align:center;flex-shrink:0;line-height:1.2}
+  .qa .q .txt{flex:1}
+  .qa .a{color:var(--ink);font-size:13.5px;margin-left:46px;line-height:1.55}
+  .qa .a.empty{color:var(--ink-mute);font-style:italic}
+
+  /* Chips for checkbox answers */
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .chip{display:inline-flex;align-items:center;background:#fff;border:1px solid var(--line-strong);border-radius:999px;padding:4px 11px;font-size:12.5px;color:var(--navy-900);font-weight:500;transition:background .12s}
+  .chip:hover{background:var(--sky)}
+
+  /* Scale answer — visual 5-dot bar */
+  .scale-vis{display:inline-flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 14px}
+  .scale-vis .dots{display:flex;gap:4px}
+  .scale-vis .d{width:10px;height:10px;border-radius:50%;background:var(--line)}
+  .scale-vis .d.on{background:var(--navy-800)}
+  .scale-vis .d.hi{background:var(--gold)}
+  .scale-vis .val{font-family:var(--display);font-weight:700;font-size:13px;color:var(--navy-900)}
+  .scale-vis .val .sub{color:var(--ink-mute);font-weight:500;font-size:11.5px;margin-left:3px}
+
+  /* Error / loading */
+  .loading-wrap,.detail-empty{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:40px}
+  .loading-card,.empty-card{text-align:center;max-width:380px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:36px 28px;box-shadow:var(--shadow-sm)}
+  .loading-card .spin{width:36px;height:36px;border:3px solid var(--sky);border-top-color:var(--gold);border-radius:50%;margin:0 auto 16px;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .empty-card .ico{width:56px;height:56px;border-radius:16px;background:var(--sky);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--navy-700)}
+  .empty-card h3{font-family:var(--display);font-size:16px;color:var(--navy-900);margin:0 0 6px;font-weight:700}
+  .empty-card p{color:var(--ink-soft);margin:0;font-size:13.5px;line-height:1.5}
+  .error-card{background:#fff8f7;border:1px solid #f2b8b0;border-radius:14px;padding:20px 22px;margin:20px}
+  .error-card h3{font-family:var(--display);color:var(--bad);margin:0 0 6px;font-size:15px}
+  .error-card p{margin:0 0 8px;color:var(--ink);font-size:13px}
+
+  /* Print */
+  @media print{
+    .sidebar,.list-pane,.toolbar,.search-box{display:none !important}
+    .app{display:block;height:auto}
+    .detail-pane{background:#fff}
+    .detail-wrap{padding:0;max-width:none}
+    .person-head{box-shadow:none;border:2px solid #000}
+    .section{page-break-inside:avoid;border:1px solid #666;margin-bottom:10px;box-shadow:none}
+    .section-body{display:block !important;background:#fff}
+    .section-head{background:#f0f0f0 !important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ SETUP SCREEN ============ -->
+<div id="setupView" class="setup-wrap" style="display:none">
+  <div class="setup">
+    <div class="mark">
+      <div class="dot">AH</div>
+      <div class="txt">
+        <span class="mono">Aspire High</span>
+        <strong>Responses Dashboard</strong>
+      </div>
+    </div>
+    <h1>Set up your dashboard</h1>
+    <p class="sub">Paste your Google Apps Script Web App URL and the shared secret from <code>GoogleAppsScript.gs</code>. They're saved on this device only.</p>
+    <label>Web app URL</label>
+    <input type="text" id="setupUrl" placeholder="https://script.google.com/macros/s/.../exec">
+    <label>Shared secret</label>
+    <input type="text" id="setupKey" placeholder="aspire-high-2026-...">
+    <button class="btn-primary" id="setupGo">Open dashboard →</button>
+    <p class="hint">Stays on this device. Anyone with the URL + secret can read responses, so keep the secret long and random.</p>
+  </div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="appView" class="app" style="display:none">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="dot">AH</div>
+      <div class="txt">
+        <span class="mono">Aspire High</span>
+        <strong>Dashboard</strong>
+      </div>
+    </div>
+    <button class="nav-item active" id="navAll">
+      <span class="ico">◉</span>
+      <span class="label">All responses</span>
+      <span class="badge" id="navAllCount">0</span>
+    </button>
+    <button class="nav-item" id="navBySection">
+      <span class="ico">▦</span>
+      <span class="label">By section</span>
+    </button>
+    <button class="nav-item" id="navRefresh">
+      <span class="ico">↻</span>
+      <span class="label">Refresh</span>
+    </button>
+    <div class="spacer"></div>
+    <button class="nav-item" id="navSettings">
+      <span class="ico">⚙</span>
+      <span class="label">Settings</span>
+    </button>
+    <div class="foot">Education · Leadership<br>Character · Independence</div>
+  </aside>
+
+  <!-- List pane -->
+  <section class="list-pane">
+    <div class="list-head">
+      <h2>Submissions</h2>
+      <div class="count-line"><span class="dot"></span><span id="countTxt">Loading…</span></div>
+    </div>
+    <div class="search-box">
+      <input type="search" id="search" placeholder="Search name or email…">
+    </div>
+    <div class="list-scroll" id="rows"></div>
+  </section>
+
+  <!-- Detail pane -->
+  <section class="detail-pane">
+    <div id="detailContent"><div class="loading-wrap"><div class="loading-card"><div class="spin"></div><h3 style="font-family:var(--display);color:var(--navy-900);margin:0 0 4px">Loading responses…</h3><p style="margin:0;color:var(--ink-soft);font-size:13px">Fetching from Google Sheets</p></div></div></div>
+  </section>
+</div>
+
+<script>
+// ============ Questions schema ============
+const SECTIONS = [
+  { title:"01 | LIFESTYLE VISION & INDEPENDENCE", questions:[
+    {n:1,text:"At age 25, what would a satisfying ordinary weekday look like for you?",type:"checkboxes"},
+    {n:2,text:"Where would you like to live after college, and why?",type:"checkboxes"},
+    {n:3,text:"What living arrangement would you prefer after college?",type:"radio"},
+    {n:4,text:"What would make your preferred living arrangement affordable?",type:"checkboxes"},
+    {n:5,text:"What type of transportation would you prefer?",type:"radio"},
+    {n:6,text:"Which transportation expenses would you need to budget for?",type:"checkboxes"},
+    {n:7,text:"How important are travel, recreation, restaurants, hobbies, and entertainment?",type:"scale"},
+    {n:8,text:"What does financial independence mean to you?",type:"checkboxes"},
+    {n:"9a",text:"Time dedicated to family each week",type:"radio"},
+    {n:"9b",text:"Time dedicated to friendships each week",type:"radio"},
+    {n:"9c",text:"Time dedicated to faith each week",type:"radio"},
+    {n:"9d",text:"Time dedicated to health and exercise each week",type:"radio"},
+    {n:"9e",text:"Time dedicated to personal interests each week",type:"radio"},
+    {n:10,text:"What work schedule would best fit your desired lifestyle?",type:"radio"},
+    {n:11,text:"What would you like to afford without relying on your parents?",type:"checkboxes"},
+    {n:12,text:"How proud would you like to feel about your progress by ages 25 and 30?",type:"scale"} ] },
+  { title:"02 | FINANCIAL LITERACY & MONEY MANAGEMENT", questions:[
+    {n:13,text:"Monthly take-home income that would support your lifestyle",type:"radio"},
+    {n:14,text:"Financial topics you need to learn more about",type:"checkboxes"},
+    {n:15,text:"Confidence managing your own monthly budget",type:"scale"},
+    {n:16,text:"Current plan for emergency savings",type:"radio"},
+    {n:17,text:"Factors that determine whether a major purchase is affordable",type:"checkboxes"},
+    {n:18,text:"Financial habits that could negatively affect your future",type:"checkboxes"},
+    {n:19,text:"Consistency practicing positive financial habits",type:"scale"} ] },
+  { title:"03 | CAREER EXPLORATION & PROFESSIONAL DEVELOPMENT", questions:[
+    {n:20,text:"Type of daily work that would interest you most",type:"checkboxes"},
+    {n:21,text:"Work environment you would prefer",type:"radio"},
+    {n:"22a",text:"Importance: predictable work hours",type:"scale"},
+    {n:"22b",text:"Importance: health benefits",type:"scale"},
+    {n:"22c",text:"Importance: paid leave",type:"scale"},
+    {n:"22d",text:"Importance: retirement benefits",type:"scale"},
+    {n:"22e",text:"Importance: opportunities for advancement",type:"scale"},
+    {n:"22f",text:"Importance: job security",type:"scale"},
+    {n:23,text:"Would you consider additional education or professional training?",type:"radio"},
+    {n:24,text:"Work responsibilities you would prefer to avoid",type:"checkboxes"},
+    {n:25,text:"Experiences that would help you explore careers before graduation",type:"checkboxes"},
+    {n:26,text:"Who could help you understand what a typical workday is like?",type:"checkboxes"},
+    {n:27,text:"Skills employers should see on your resume",type:"checkboxes"},
+    {n:28,text:"Readiness to take one career-development step this month",type:"scale"} ] },
+  { title:"04 | COLLEGE SUCCESS & EDUCATIONAL PLANNING", questions:[
+    {n:29,text:"What you want college to provide beyond a degree",type:"checkboxes"},
+    {n:30,text:"Importance of grades, attendance, academic standing, coursework",type:"scale"},
+    {n:31,text:"College support services currently using or willing to use",type:"checkboxes"},
+    {n:32,text:"When a class or assignment becomes difficult, what would you most likely do?",type:"radio"},
+    {n:33,text:"Hours per week to dedicate to studying outside class",type:"radio"},
+    {n:34,text:"Campus activities that would support your growth",type:"checkboxes"},
+    {n:35,text:"What you would most like to gain from an internship or summer work",type:"checkboxes"},
+    {n:36,text:"Confidence building professional relationships before graduation",type:"scale"} ] },
+  { title:"05 | PARENT RELATIONSHIPS & COMMUNICATION", questions:[
+    {n:37,text:"What you appreciate about your parents' support",type:"checkboxes"},
+    {n:38,text:"Type of parental guidance that is most helpful",type:"checkboxes"},
+    {n:39,text:"Comfort communicating when you need space or a different approach",type:"scale"},
+    {n:40,text:"Response that would help you communicate constructively when parents raise a concern",type:"checkboxes"},
+    {n:41,text:"Communication behaviors important during disagreements",type:"checkboxes"},
+    {n:42,text:"Importance of taking responsibility and apologizing",type:"scale"},
+    {n:43,text:"Boundaries that would help you become more independent",type:"checkboxes"},
+    {n:44,text:"How parents should provide advice while respecting your independence",type:"radio"},
+    {n:45,text:"What would make a weekly family check-in most useful",type:"checkboxes"},
+    {n:46,text:"How you would like your relationship with each parent to look in 5 years",type:"checkboxes"} ] },
+  { title:"06 | PERSONAL RESPONSIBILITY & ACCOUNTABILITY", questions:[
+    {n:47,text:"Responsibilities you can currently manage independently",type:"checkboxes"},
+    {n:48,text:"What most often prevents you from following through on commitments",type:"checkboxes"},
+    {n:49,text:"How you respond to feedback you disagree with",type:"radio"},
+    {n:50,text:"Consistency holding yourself accountable",type:"scale"},
+    {n:51,text:"Personal habit to strengthen over the next 30 days",type:"radio"} ] },
+  { title:"07 | CHRISTIAN FAITH & CHARACTER DEVELOPMENT", questions:[
+    {n:52,text:"Role you'd like Christian faith to have in your everyday decisions",type:"radio"},
+    {n:53,text:"Qualities people should experience when interacting with you",type:"checkboxes"},
+    {n:54,text:"Topics to explore during weekly Bible study with Dad",type:"checkboxes"},
+    {n:55,text:"Importance of integrity, humility, patience, courage, compassion",type:"scale"} ] },
+  { title:"08 | WELLNESS, RECREATION & PERSONAL FULFILLMENT", questions:[
+    {n:56,text:"Activities that help you feel balanced, connected, and refreshed",type:"checkboxes"},
+    {n:57,text:"Three experiences or trips you'd most like to plan next year",type:"checkboxes"} ] },
+  { title:"09 | GOALS & FUTURE PLANNING", questions:[
+    {n:58,text:"Confidence balancing fun and friendships with academics and work",type:"scale"},
+    {n:59,text:"Three outcomes most important to accomplish in next 12 months",type:"checkboxes"},
+    {n:60,text:"Readiness to take action toward your future lifestyle in next 7 days",type:"scale"},
+    {n:61,text:"Support you want from your parents while becoming independent",type:"checkboxes"},
+    {n:62,text:"Areas to review during each weekly family meeting",type:"checkboxes"},
+    {n:63,text:"How you'd measure whether these meetings are helping",type:"checkboxes"} ] }
+];
+
+const AVATAR_COLORS = [
+  ['#1257A8','#1E7BE0'], ['#12A86B','#0D8356'], ['#C58C13','#E0A526'],
+  ['#8E44AD','#A569BD'], ['#C0392B','#E74C3C'], ['#2C3E50','#4A6485'],
+  ['#D48020','#F39C12'], ['#16A085','#1ABC9C']
+];
+
+// Pre-configured for the Aspire High team — no setup needed.
+const CONFIG = {
+  url: 'https://script.google.com/macros/s/AKfycbyu4VBA-0bDnpAmkx4V1EgFudj84kA4q-FlydZPXsHsgJeBKW0rXT5Mdkvm4y3ZAjbh/exec',
+  key: 'aspire-team-2026-K9x7mPq4Lr'
+};
+const S = {
+  url: CONFIG.url,
+  key: CONFIG.key,
+  rows: [], filtered: [], current: -1,
+  focusSection: -1,     // -1 = "All", 0..8 = which section the detail view is showing
+  cmpSection: 0         // which section the "By section" view is on
+};
+
+// ============ Setup gate ============
+function showSetup(){
+  document.getElementById('setupView').style.display = 'flex';
+  document.getElementById('appView').style.display = 'none';
+  document.getElementById('setupUrl').value = S.url;
+  document.getElementById('setupKey').value = S.key;
+}
+function showApp(){
+  document.getElementById('setupView').style.display = 'none';
+  document.getElementById('appView').style.display = 'grid';
+  loadRows();
+}
+document.getElementById('setupGo').addEventListener('click', () => {
+  const url = document.getElementById('setupUrl').value.trim();
+  const key = document.getElementById('setupKey').value.trim();
+  if (!url || !key) { alert('Both fields are required.'); return; }
+  localStorage.setItem('aspire_url', url);
+  localStorage.setItem('aspire_key', key);
+  S.url = url; S.key = key;
+  showApp();
+});
+document.getElementById('navSettings').addEventListener('click', () => {
+  alert('This dashboard is pre-configured for the Aspire High team.\n\nIf the connection stops working, the SHARED_SECRET or Web App URL in Google Apps Script has changed — contact the admin for an updated file.');
+});
+document.getElementById('navRefresh').addEventListener('click', loadRows);
+document.getElementById('navAll').addEventListener('click', () => {
+  S.current = -1;
+  setActiveNav('navAll');
+  renderList();
+  renderHome();
+});
+document.getElementById('navBySection').addEventListener('click', () => {
+  S.current = -1;
+  setActiveNav('navBySection');
+  renderList();
+  renderBySection();
+});
+
+function setActiveNav(id){
+  ['navAll','navBySection'].forEach(x => {
+    const el = document.getElementById(x);
+    if (el) el.classList.toggle('active', x === id);
+  });
+}
+document.getElementById('search').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  S.filtered = !q ? S.rows.slice() : S.rows.filter(r =>
+    String(r.full_name||'').toLowerCase().includes(q) ||
+    String(r.email||'').toLowerCase().includes(q)
+  );
+  renderList();
+});
+
+// ============ Load ============
+async function loadRows(){
+  document.getElementById('countTxt').textContent = 'Loading…';
+  document.getElementById('rows').innerHTML = '';
+  try {
+    const u = `${S.url}?key=${encodeURIComponent(S.key)}`;
+    const res = await fetch(u, { method:'GET' });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Server returned an error.');
+    S.rows = (data.rows || []).slice().reverse();
+    S.filtered = S.rows.slice();
+    document.getElementById('navAllCount').textContent = S.rows.length;
+    renderList();
+    renderHome();
+  } catch (err) {
+    document.getElementById('countTxt').textContent = 'Error';
+    document.getElementById('detailContent').innerHTML =
+      `<div class="error-card"><h3>Could not load responses</h3>
+       <p>${escapeHtml(err.message)}</p>
+       <p style="color:var(--ink-soft);font-size:12.5px">Common causes: wrong URL or secret, or the Apps Script wasn't redeployed after changes.</p></div>`;
+  }
+}
+
+// ============ List ============
+function renderList(){
+  const n = S.filtered.length;
+  document.getElementById('countTxt').textContent =
+    n === S.rows.length ? `${n} total` : `${n} of ${S.rows.length}`;
+  const list = document.getElementById('rows');
+  if (n === 0) {
+    list.innerHTML = '<div class="row-empty">No matches.</div>';
+    return;
+  }
+  list.innerHTML = S.filtered.map((r, i) => {
+    const initials = getInitials(r.full_name || '?');
+    const color = avatarColor(r.full_name || r.email || '?');
+    return `
+      <div class="row ${i===S.current?'active':''}" data-i="${i}">
+        <div class="avatar" style="background:linear-gradient(135deg,${color[0]},${color[1]})">${escapeHtml(initials)}</div>
+        <div class="info">
+          <p class="name">${escapeHtml(r.full_name || '(no name)')}</p>
+          <p class="meta">${escapeHtml(r.email || '')}</p>
+          <p class="date">${formatDate(r.submitted_at)}</p>
+        </div>
+      </div>`;
+  }).join('');
+  list.querySelectorAll('.row').forEach(el => {
+    el.addEventListener('click', () => select(parseInt(el.dataset.i, 10)));
+  });
+}
+
+function select(i, keepFocus){
+  S.current = i;
+  if (!keepFocus) S.focusSection = -1; // reset filter when switching people
+  setActiveNav(null);
+  renderList();
+  renderDetail(S.filtered[i]);
+}
+
+// ============ Home view (no selection) ============
+function renderHome(){
+  setActiveNav('navAll');
+  const n = S.rows.length;
+  if (n === 0) {
+    document.getElementById('detailContent').innerHTML = `
+      <div class="detail-empty"><div class="empty-card">
+        <div class="ico">📝</div>
+        <h3>No submissions yet</h3>
+        <p>Responses will appear here as people complete the form. Pull down to refresh.</p>
+      </div></div>`;
+    return;
+  }
+
+  // Compute some overview stats
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
+  const todayCount = S.rows.filter(r => { const d = new Date(r.submitted_at); return !isNaN(d) && d >= today; }).length;
+  const weekCount = S.rows.filter(r => { const d = new Date(r.submitted_at); return !isNaN(d) && d >= weekAgo; }).length;
+
+  // Average confidence (scale) across all scale answers
+  let scaleSum = 0, scaleN = 0;
+  SECTIONS.forEach(s => s.questions.forEach(q => {
+    if (q.type !== 'scale') return;
+    S.rows.forEach(r => {
+      const v = parseInt(r['q_'+q.n], 10);
+      if (!isNaN(v)) { scaleSum += v; scaleN++; }
+    });
+  }));
+  const avgScale = scaleN ? (scaleSum/scaleN).toFixed(1) : '—';
+  const latest = S.rows[0];
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-wrap">
+      <div class="home-hero">
+        <p class="mono">Overview</p>
+        <h1>Young Adult Independence &amp; Life Planning</h1>
+        <p>All responses submitted to the assessment, organized by the nine life-planning sections. Pick someone on the left to see their full plan.</p>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat">
+          <p class="k">Total submissions</p>
+          <p class="v">${n}</p>
+          <p class="sub">${latest ? 'Latest '+formatDate(latest.submitted_at) : ''}</p>
+        </div>
+        <div class="stat">
+          <p class="k">This week</p>
+          <p class="v">${weekCount}</p>
+          <p class="sub">Last 7 days</p>
+        </div>
+        <div class="stat">
+          <p class="k">Today</p>
+          <p class="v">${todayCount}</p>
+          <p class="sub">Since midnight</p>
+        </div>
+        <div class="stat">
+          <p class="k">Avg. confidence</p>
+          <p class="v">${avgScale}<span style="font-size:16px;color:var(--ink-soft);font-weight:500"> / 5</span></p>
+          <p class="sub">Across all rating questions</p>
+        </div>
+      </div>
+
+      <div class="section-promo">
+        <h3>Reading responses</h3>
+        <p>Use the list on the left to open any submission. Inside a response, each of the 9 sections can be expanded or collapsed. Hit <span class="kbd">↑</span> / <span class="kbd">↓</span> to move through people and <span class="kbd">Esc</span> to come back here.</p>
+      </div>
+    </div>`;
+}
+
+// ============ Detail view ============
+function renderDetail(r){
+  if (!r) return;
+  const color = avatarColor(r.full_name || r.email || '?');
+  const initials = getInitials(r.full_name || '?');
+
+  // Section filter tabs
+  const tabs = `
+    <div class="sec-tabs">
+      <button class="sec-tab all ${S.focusSection===-1?'active':''}" data-sec="-1">All sections</button>
+      ${SECTIONS.map((sec, i) => {
+        const parts = sec.title.split(' | ');
+        const num = parts[0];
+        const head = (parts[1] || sec.title).split(' ').slice(0,2).join(' ');
+        return `<button class="sec-tab ${S.focusSection===i?'active':''}" data-sec="${i}" title="${escapeHtml(parts[1]||sec.title)}"><span class="n">${escapeHtml(num)}</span>${escapeHtml(head)}</button>`;
+      }).join('')}
+    </div>`;
+
+  let body = '';
+
+  if (S.focusSection === -1) {
+    // All sections (same as before, collapsible cards)
+    body = SECTIONS.map(sec => {
+      const parts = sec.title.split(' | ');
+      const num = parts[0]; const head = parts[1] || sec.title;
+      const answered = sec.questions.filter(q => r['q_'+q.n] !== undefined && r['q_'+q.n] !== '').length;
+      const items = sec.questions.map(q => {
+        const val = r['q_'+q.n];
+        return `
+          <div class="qa">
+            <p class="q"><span class="num">${q.n}</span><span class="txt">${escapeHtml(q.text)}</span></p>
+            <div class="a ${val ? '' : 'empty'}">${formatAnswer(val, q.type)}</div>
+          </div>`;
+      }).join('');
+      return `
+        <div class="section open">
+          <div class="section-head">
+            <div class="section-head-left">
+              <div class="section-num">${escapeHtml(num.replace(/^0/,''))}</div>
+              <div>
+                <h3>${escapeHtml(head)}</h3>
+                <div class="ans-count"><span class="pill">${answered} / ${sec.questions.length}</span><span>answered</span></div>
+              </div>
+            </div>
+            <div class="caret">›</div>
+          </div>
+          <div class="section-body">${items}</div>
+        </div>`;
+    }).join('');
+  } else {
+    // Enlarged single-section view
+    const sec = SECTIONS[S.focusSection];
+    const parts = sec.title.split(' | ');
+    const num = parts[0]; const head = parts[1] || sec.title;
+    const answered = sec.questions.filter(q => r['q_'+q.n] !== undefined && r['q_'+q.n] !== '').length;
+    const items = sec.questions.map(q => {
+      const val = r['q_'+q.n];
+      return `
+        <div class="big-qa">
+          <div class="q"><span class="num">${q.n}</span><span class="txt">${escapeHtml(q.text)}</span></div>
+          <div class="a ${val ? '' : 'empty'}">${formatAnswer(val, q.type)}</div>
+        </div>`;
+    }).join('');
+    body = `
+      <div class="section-focus">
+        <div class="focus-head">
+          <p class="eyebrow">Section ${escapeHtml(num)}</p>
+          <h2>${escapeHtml(head)}</h2>
+          <p class="meta">${answered} of ${sec.questions.length} questions answered · ${escapeHtml(r.full_name || '')}</p>
+        </div>
+        <div class="focus-body">${items}</div>
+      </div>`;
+  }
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-wrap">
+      <div class="person-head">
+        <div class="avatar avatar-lg" style="background:linear-gradient(135deg,${color[0]},${color[1]})">${escapeHtml(initials)}</div>
+        <div class="pinfo">
+          <h1>${escapeHtml(r.full_name || '(no name)')}</h1>
+          <div class="pmeta">
+            ${r.email ? `<span>📧 <a href="mailto:${escapeHtml(r.email)}">${escapeHtml(r.email)}</a></span>` : ''}
+            <span class="mono">${formatDate(r.submitted_at, true)}</span>
+          </div>
+        </div>
+      </div>
+
+      ${tabs}
+
+      <div class="toolbar">
+        ${S.focusSection === -1 ? `
+          <button class="btn" id="expandAll">⤢ Expand all</button>
+          <button class="btn" id="collapseAll">⤡ Collapse all</button>
+        ` : ''}
+        <button class="btn btn-gold" onclick="window.print()">🖨 Print / PDF</button>
+        <button class="btn btn-ghost" id="backHome">← Back to overview</button>
+      </div>
+
+      ${body}
+    </div>`;
+
+  // Wire up tabs
+  document.querySelectorAll('.sec-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      S.focusSection = parseInt(t.dataset.sec, 10);
+      select(S.current, true);
+    });
+  });
+
+  if (S.focusSection === -1) {
+    document.querySelectorAll('.section-head').forEach(h => {
+      h.addEventListener('click', () => h.parentElement.classList.toggle('open'));
+    });
+    document.getElementById('expandAll').addEventListener('click', () => {
+      document.querySelectorAll('.section').forEach(s => s.classList.add('open'));
+    });
+    document.getElementById('collapseAll').addEventListener('click', () => {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('open'));
+    });
+  }
+  document.getElementById('backHome').addEventListener('click', () => {
+    S.current = -1; S.focusSection = -1; setActiveNav('navAll'); renderList(); renderHome();
+  });
+
+  document.querySelector('.detail-pane').scrollTop = 0;
+}
+
+// ============ By-section comparison view ============
+function renderBySection(){
+  const picker = `
+    <div class="cmp-sec-picker">
+      <label for="cmpSel">Section:</label>
+      <select id="cmpSel">
+        ${SECTIONS.map((sec,i) => `<option value="${i}" ${i===S.cmpSection?'selected':''}>${escapeHtml(sec.title)}</option>`).join('')}
+      </select>
+    </div>`;
+
+  if (S.rows.length === 0) {
+    document.getElementById('detailContent').innerHTML = `
+      <div class="detail-wrap">
+        <div class="cmp-head">
+          <p class="eyebrow">By section</p>
+          <h1>Compare everyone's answers</h1>
+          <p>Pick any section to see how every respondent answered its questions side by side.</p>
+        </div>
+        ${picker}
+        <div class="empty-card">
+          <div class="ico">📊</div>
+          <h3>No submissions yet</h3>
+          <p>Responses will appear here once people start filling out the form.</p>
+        </div>
+      </div>`;
+    document.getElementById('cmpSel').addEventListener('change', e => { S.cmpSection = parseInt(e.target.value,10); renderBySection(); });
+    return;
+  }
+
+  const sec = SECTIONS[S.cmpSection];
+  const parts = sec.title.split(' | ');
+  const num = parts[0]; const head = parts[1] || sec.title;
+
+  const qBlocks = sec.questions.map(q => {
+    const key = 'q_' + q.n;
+    // Compute summary for scale questions
+    let summary = '';
+    if (q.type === 'scale') {
+      const bins = [0,0,0,0,0];
+      let sum = 0, cnt = 0;
+      S.rows.forEach(r => {
+        const v = parseInt(r[key], 10);
+        if (!isNaN(v) && v>=1 && v<=5) { bins[v-1]++; sum+=v; cnt++; }
+      });
+      const avg = cnt ? (sum/cnt).toFixed(1) : '—';
+      const maxBin = Math.max(1, ...bins);
+      summary = `
+        <div class="scale-summary">
+          <span class="sl">Average</span>
+          <span class="ss-avg">${avg}<span style="font-family:var(--body);font-weight:500;color:var(--ink-soft);font-size:13px"> / 5</span></span>
+          <div class="ss-bars">
+            ${bins.map((n,i) => {
+              const h = (n/maxBin)*100;
+              const cls = i>=3 ? 'hi' : (i<=1 ? 'lo' : '');
+              return `<div class="b ${cls}" style="height:${h}%" title="${n} chose ${i+1}"><span class="nn">${n}</span></div>`;
+            }).join('')}
+          </div>
+          <span class="sl" style="color:var(--ink-mute)">1&nbsp;→&nbsp;5</span>
+        </div>`;
+    }
+    // For checkbox questions, show top 5 answer counts
+    if (q.type === 'checkboxes') {
+      const counts = {};
+      S.rows.forEach(r => {
+        const v = String(r[key] || '').split(/;\s*/).filter(Boolean);
+        v.forEach(opt => { counts[opt] = (counts[opt]||0) + 1; });
+      });
+      const top = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      if (top.length) {
+        summary = `
+          <div class="scale-summary">
+            <span class="sl">Top picks</span>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;flex:1">
+              ${top.map(([opt,n]) => `<span class="chip" style="font-size:11.5px;padding:3px 10px">${escapeHtml(opt)} <strong style="color:var(--blue);margin-left:4px">${n}</strong></span>`).join('')}
+            </div>
+          </div>`;
+      }
+    }
+
+    const rows = S.rows.map((r,i) => {
+      const val = r[key];
+      const color = avatarColor(r.full_name || r.email || '?');
+      const initials = getInitials(r.full_name || '?');
+      return `
+        <div class="cmp-row" data-i="${i}">
+          <div class="who">
+            <div class="avatar" style="background:linear-gradient(135deg,${color[0]},${color[1]})">${escapeHtml(initials)}</div>
+            <span class="wn" title="${escapeHtml(r.full_name||'')}">${escapeHtml(r.full_name || '(no name)')}</span>
+          </div>
+          <div class="ans ${val?'':'empty'}">${val ? formatAnswer(val, q.type) : '<span style="color:var(--ink-mute);font-style:italic">no answer</span>'}</div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="cmp-q">
+        <div class="cq-head">
+          <span class="num">${q.n}</span>
+          <span class="txt">${escapeHtml(q.text)}</span>
+        </div>
+        ${summary}
+        <div class="cq-body">${rows}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-wrap">
+      <div class="cmp-head">
+        <p class="eyebrow">Section ${escapeHtml(num)} · All respondents</p>
+        <h1>${escapeHtml(head)}</h1>
+        <p>${S.rows.length} ${S.rows.length===1?'submission':'submissions'} · ${sec.questions.length} questions</p>
+      </div>
+      ${picker}
+      ${qBlocks}
+    </div>`;
+
+  document.getElementById('cmpSel').addEventListener('change', e => {
+    S.cmpSection = parseInt(e.target.value, 10);
+    renderBySection();
+  });
+  // Clicking a row jumps to that person, focused on the current section
+  document.querySelectorAll('.cmp-row').forEach(el => {
+    el.addEventListener('click', () => {
+      S.focusSection = S.cmpSection;
+      select(parseInt(el.dataset.i, 10), true);
+    });
+  });
+
+  document.querySelector('.detail-pane').scrollTop = 0;
+}
+
+// ============ Keyboard navigation ============
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('appView').style.display === 'none') return;
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const next = Math.min(S.current + 1, S.filtered.length - 1);
+    if (next >= 0) select(next);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const prev = Math.max(S.current - 1, 0);
+    if (S.filtered.length > 0) select(prev);
+  } else if (e.key === 'Escape') {
+    S.current = -1; renderList(); renderHome();
+  }
+});
+
+// ============ Helpers ============
+function formatAnswer(v, type){
+  if (v === undefined || v === null || v === '') return '— no answer —';
+  if (type === 'scale') {
+    const n = parseInt(v, 10);
+    if (isNaN(n)) return escapeHtml(String(v));
+    const hi = n >= 4;
+    const dots = [1,2,3,4,5].map(i => `<span class="d ${i<=n?(hi?'hi':'on'):''}"></span>`).join('');
+    return `<span class="scale-vis"><span class="dots">${dots}</span><span class="val">${n}<span class="sub">/ 5</span></span></span>`;
+  }
+  if (type === 'checkboxes') {
+    const parts = String(v).split(/;\s*/).filter(Boolean);
+    if (parts.length === 0) return '— no answer —';
+    return `<div class="chips">${parts.map(p => `<span class="chip">${escapeHtml(p)}</span>`).join('')}</div>`;
+  }
+  return escapeHtml(String(v));
+}
+
+function getInitials(name){
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+  return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+}
+function avatarColor(seed){
+  let h = 0;
+  for (const c of String(seed)) h = ((h<<5) - h + c.charCodeAt(0)) | 0;
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+function formatDate(s, long){
+  if (!s) return '';
+  try {
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return String(s);
+    if (long) return d.toLocaleString(undefined, { dateStyle:'full', timeStyle:'short' });
+    const now = new Date();
+    const diffH = (now - d) / 3600000;
+    if (diffH < 1) return Math.max(1, Math.round(diffH*60)) + 'm ago';
+    if (diffH < 24) return Math.round(diffH) + 'h ago';
+    if (diffH < 168) return Math.round(diffH/24) + 'd ago';
+    return d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  } catch(e){ return String(s); }
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Boot — always skip setup, config is baked in
+showApp();
+</script>
+</body>
+</html>
