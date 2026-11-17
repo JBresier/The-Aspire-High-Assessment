@@ -281,7 +281,7 @@
 </head>
 <body>
 
-<!-- ============ SETUP SCREEN ============ -->
+<!-- ============ LOGIN SCREEN ============ -->
 <div id="setupView" class="setup-wrap" style="display:none">
   <div class="setup">
     <div class="mark">
@@ -291,14 +291,17 @@
         <strong>Responses Dashboard</strong>
       </div>
     </div>
-    <h1>Set up your dashboard</h1>
-    <p class="sub">Paste your Google Apps Script Web App URL and the shared secret from <code>GoogleAppsScript.gs</code>. They're saved on this device only.</p>
-    <label>Web app URL</label>
-    <input type="text" id="setupUrl" placeholder="https://script.google.com/macros/s/.../exec">
-    <label>Shared secret</label>
-    <input type="text" id="setupKey" placeholder="aspire-high-2026-...">
-    <button class="btn-primary" id="setupGo">Open dashboard →</button>
-    <p class="hint">Stays on this device. Anyone with the URL + secret can read responses, so keep the secret long and random.</p>
+    <h1>Sign in</h1>
+    <p class="sub">Enter your team username and password to view the assessment responses.</p>
+    <form id="loginForm" autocomplete="off">
+      <label>Username</label>
+      <input type="text" id="loginUser" autocomplete="username" autofocus>
+      <label>Password</label>
+      <input type="password" id="loginPass" autocomplete="current-password">
+      <div id="loginError" style="display:none;margin-top:10px;padding:10px 12px;background:#fff8f7;border:1px solid #f2b8b0;border-radius:8px;color:#C0392B;font-size:13px"></div>
+      <button type="submit" class="btn-primary">Sign in →</button>
+    </form>
+    <p class="hint">Credentials are managed by your admin in Google Apps Script. Ask them to add a new login if you don't have one yet.</p>
   </div>
 </div>
 
@@ -328,9 +331,9 @@
       <span class="label">Refresh</span>
     </button>
     <div class="spacer"></div>
-    <button class="nav-item" id="navSettings">
-      <span class="ico">⚙</span>
-      <span class="label">Settings</span>
+    <button class="nav-item" id="navSettings" title="Sign out">
+      <span class="ico">⎋</span>
+      <span class="label">Sign out</span>
     </button>
     <div class="foot">Education · Leadership<br>Character · Independence</div>
   </aside>
@@ -445,42 +448,71 @@ const AVATAR_COLORS = [
   ['#D48020','#F39C12'], ['#16A085','#1ABC9C']
 ];
 
-// Pre-configured for the Aspire High team — no setup needed.
+// Pre-configured Apps Script URL — users sign in with their own username/password.
 const CONFIG = {
-  url: 'https://script.google.com/macros/s/AKfycbyu4VBA-0bDnpAmkx4V1EgFudj84kA4q-FlydZPXsHsgJeBKW0rXT5Mdkvm4y3ZAjbh/exec',
-  key: 'aspire-team-2026-K9x7mPq4Lr'
+  url: 'https://script.google.com/macros/s/AKfycbyu4VBA-0bDnpAmkx4V1EgFudj84kA4q-FlydZPXsHsgJeBKW0rXT5Mdkvm4y3ZAjbh/exec'
 };
 const S = {
   url: CONFIG.url,
-  key: CONFIG.key,
+  user: localStorage.getItem('aspire_user') || '',
+  pass: localStorage.getItem('aspire_pass') || '',
   rows: [], filtered: [], current: -1,
   focusSection: -1,     // -1 = "All", 0..8 = which section the detail view is showing
   cmpSection: 0         // which section the "By section" view is on
 };
 
-// ============ Setup gate ============
+// ============ Auth gate ============
 function showSetup(){
   document.getElementById('setupView').style.display = 'flex';
   document.getElementById('appView').style.display = 'none';
-  document.getElementById('setupUrl').value = S.url;
-  document.getElementById('setupKey').value = S.key;
+  document.getElementById('loginError').style.display = 'none';
+  setTimeout(() => document.getElementById('loginUser').focus(), 50);
 }
 function showApp(){
   document.getElementById('setupView').style.display = 'none';
   document.getElementById('appView').style.display = 'grid';
   loadRows();
 }
-document.getElementById('setupGo').addEventListener('click', () => {
-  const url = document.getElementById('setupUrl').value.trim();
-  const key = document.getElementById('setupKey').value.trim();
-  if (!url || !key) { alert('Both fields are required.'); return; }
-  localStorage.setItem('aspire_url', url);
-  localStorage.setItem('aspire_key', key);
-  S.url = url; S.key = key;
-  showApp();
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginError');
+  err.style.display = 'none';
+  if (!user || !pass) { err.textContent = 'Both fields are required.'; err.style.display = 'block'; return; }
+
+  // Verify by trying a fetch
+  try {
+    const u = `${S.url}?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`;
+    const res = await fetch(u, { method:'GET' });
+    const data = await res.json();
+    if (!data.ok) {
+      err.textContent = data.error || 'Sign-in failed.';
+      err.style.display = 'block';
+      return;
+    }
+    // Success — save credentials
+    localStorage.setItem('aspire_user', user);
+    localStorage.setItem('aspire_pass', pass);
+    S.user = user; S.pass = pass;
+    // Load what we already fetched
+    S.rows = (data.rows || []).slice().reverse();
+    S.filtered = S.rows.slice();
+    document.getElementById('navAllCount').textContent = S.rows.length;
+    showApp();
+  } catch (fetchErr) {
+    err.textContent = 'Could not reach the server. Check your connection and try again.';
+    err.style.display = 'block';
+  }
 });
+
 document.getElementById('navSettings').addEventListener('click', () => {
-  alert('This dashboard is pre-configured for the Aspire High team.\n\nIf the connection stops working, the SHARED_SECRET or Web App URL in Google Apps Script has changed — contact the admin for an updated file.');
+  if (!confirm('Sign out and clear your saved login on this browser?')) return;
+  localStorage.removeItem('aspire_user');
+  localStorage.removeItem('aspire_pass');
+  S.user=''; S.pass=''; S.rows=[]; S.filtered=[]; S.current=-1;
+  showSetup();
 });
 document.getElementById('navRefresh').addEventListener('click', loadRows);
 document.getElementById('navAll').addEventListener('click', () => {
@@ -516,10 +548,22 @@ async function loadRows(){
   document.getElementById('countTxt').textContent = 'Loading…';
   document.getElementById('rows').innerHTML = '';
   try {
-    const u = `${S.url}?key=${encodeURIComponent(S.key)}`;
+    const u = `${S.url}?user=${encodeURIComponent(S.user)}&pass=${encodeURIComponent(S.pass)}`;
     const res = await fetch(u, { method:'GET' });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Server returned an error.');
+    if (!data.ok) {
+      // Credentials invalid — kick back to login
+      if ((data.error || '').toLowerCase().includes('invalid')) {
+        localStorage.removeItem('aspire_user');
+        localStorage.removeItem('aspire_pass');
+        S.user=''; S.pass='';
+        showSetup();
+        document.getElementById('loginError').textContent = 'Your saved login is no longer valid. Please sign in again.';
+        document.getElementById('loginError').style.display = 'block';
+        return;
+      }
+      throw new Error(data.error || 'Server returned an error.');
+    }
     S.rows = (data.rows || []).slice().reverse();
     S.filtered = S.rows.slice();
     document.getElementById('navAllCount').textContent = S.rows.length;
@@ -530,7 +574,7 @@ async function loadRows(){
     document.getElementById('detailContent').innerHTML =
       `<div class="error-card"><h3>Could not load responses</h3>
        <p>${escapeHtml(err.message)}</p>
-       <p style="color:var(--ink-soft);font-size:12.5px">Common causes: wrong URL or secret, or the Apps Script wasn't redeployed after changes.</p></div>`;
+       <p style="color:var(--ink-soft);font-size:12.5px">Common causes: the Apps Script wasn't redeployed after changes, or your network is offline.</p></div>`;
   }
 }
 
@@ -960,8 +1004,8 @@ function formatDate(s, long){
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-// Boot — always skip setup, config is baked in
-showApp();
+// Boot — skip login only if saved credentials exist (validated on first fetch)
+if (S.user && S.pass) showApp(); else showSetup();
 </script>
 </body>
 </html>
