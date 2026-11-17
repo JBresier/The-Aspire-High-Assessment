@@ -266,6 +266,35 @@
   .error-card h3{font-family:var(--display);color:var(--bad);margin:0 0 6px;font-size:15px}
   .error-card p{margin:0 0 8px;color:var(--ink);font-size:13px}
 
+  /* Signed-in user pill in sidebar */
+  .me-pill{margin:4px 2px 12px;display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#C3D6EC;font-size:12.5px}
+  .me-pill .av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue-bright));color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:11.5px;flex-shrink:0}
+  .me-pill .who{flex:1;min-width:0;line-height:1.3}
+  .me-pill .who .name{font-family:var(--display);font-weight:700;color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .me-pill .who .role{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#8DA7C7}
+  .me-pill .who .role.admin{color:var(--gold-light)}
+
+  /* Delete button */
+  .btn-danger{background:transparent;color:var(--bad);border:1.5px solid var(--bad)}
+  .btn-danger:hover{background:var(--bad);color:#fff;border-color:var(--bad)}
+
+  /* Toast */
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(140%);background:var(--navy-900);color:#fff;padding:14px 20px;border-radius:12px;display:flex;align-items:center;gap:16px;box-shadow:var(--shadow-lg);z-index:1000;max-width:540px;transition:transform .3s cubic-bezier(.2,.9,.3,1.2)}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast .msg{font-size:14px;font-weight:500}
+  #toast .toast-btn{background:var(--gold);color:var(--navy-900);border:0;padding:8px 16px;border-radius:7px;font-family:var(--body);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+  #toast .toast-btn:hover{background:var(--gold-dark);color:#fff}
+  #toast .close{background:transparent;border:0;color:#8DA7C7;font-size:18px;padding:4px 8px;cursor:pointer;line-height:1}
+  #toast .close:hover{color:#fff}
+
+  /* Trash view */
+  .trash-row{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:0 0 10px;display:flex;gap:14px;align-items:center;box-shadow:var(--shadow-sm);transition:box-shadow .15s}
+  .trash-row:hover{box-shadow:var(--shadow-md)}
+  .trash-row .info{flex:1;min-width:0}
+  .trash-row .info .name{font-family:var(--display);font-weight:700;color:var(--navy-900);font-size:15px;margin:0 0 3px}
+  .trash-row .info .meta{font-size:12.5px;color:var(--ink-soft);display:flex;gap:14px;flex-wrap:wrap}
+  .trash-row .info .meta .mono{font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:.04em}
+
   /* Print */
   @media print{
     .sidebar,.list-pane,.toolbar,.search-box{display:none !important}
@@ -305,6 +334,13 @@
   </div>
 </div>
 
+<!-- Toast for undo-delete -->
+<div id="toast">
+  <span class="msg" id="toastMsg">Response deleted.</span>
+  <button class="toast-btn" id="toastAction">Undo</button>
+  <button class="close" id="toastClose" title="Dismiss">×</button>
+</div>
+
 <!-- ============ MAIN APP ============ -->
 <div id="appView" class="app" style="display:none">
 
@@ -326,11 +362,23 @@
       <span class="ico">▦</span>
       <span class="label">By section</span>
     </button>
+    <button class="nav-item" id="navTrash" style="display:none">
+      <span class="ico">🗑</span>
+      <span class="label">Trash</span>
+      <span class="badge" id="navTrashCount" style="display:none">0</span>
+    </button>
     <button class="nav-item" id="navRefresh">
       <span class="ico">↻</span>
       <span class="label">Refresh</span>
     </button>
     <div class="spacer"></div>
+    <div class="me-pill" id="mePill" style="display:none">
+      <div class="av" id="meAv">?</div>
+      <div class="who">
+        <div class="name" id="meName">—</div>
+        <div class="role" id="meRole">viewer</div>
+      </div>
+    </div>
     <button class="nav-item" id="navSettings" title="Sign out">
       <span class="ico">⎋</span>
       <span class="label">Sign out</span>
@@ -456,9 +504,12 @@ const S = {
   url: CONFIG.url,
   user: localStorage.getItem('aspire_user') || '',
   pass: localStorage.getItem('aspire_pass') || '',
+  isAdmin: false,
   rows: [], filtered: [], current: -1,
   focusSection: -1,     // -1 = "All", 0..8 = which section the detail view is showing
-  cmpSection: 0         // which section the "By section" view is on
+  cmpSection: 0,        // which section the "By section" view is on
+  trash: [], trashLoaded: false,
+  view: 'home'          // 'home' | 'person' | 'bysection' | 'trash'
 };
 
 // ============ Auth gate ============
@@ -495,11 +546,11 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     // Success — save credentials
     localStorage.setItem('aspire_user', user);
     localStorage.setItem('aspire_pass', pass);
-    S.user = user; S.pass = pass;
-    // Load what we already fetched
+    S.user = user; S.pass = pass; S.isAdmin = !!data.isAdmin;
     S.rows = (data.rows || []).slice().reverse();
     S.filtered = S.rows.slice();
     document.getElementById('navAllCount').textContent = S.rows.length;
+    updateMePill();
     showApp();
   } catch (fetchErr) {
     err.textContent = 'Could not reach the server. Check your connection and try again.';
@@ -529,7 +580,7 @@ document.getElementById('navBySection').addEventListener('click', () => {
 });
 
 function setActiveNav(id){
-  ['navAll','navBySection'].forEach(x => {
+  ['navAll','navBySection','navTrash'].forEach(x => {
     const el = document.getElementById(x);
     if (el) el.classList.toggle('active', x === id);
   });
@@ -566,7 +617,9 @@ async function loadRows(){
     }
     S.rows = (data.rows || []).slice().reverse();
     S.filtered = S.rows.slice();
+    S.isAdmin = !!data.isAdmin;
     document.getElementById('navAllCount').textContent = S.rows.length;
+    updateMePill();
     renderList();
     renderHome();
   } catch (err) {
@@ -780,6 +833,7 @@ function renderDetail(r){
         ` : ''}
         <button class="btn btn-gold" onclick="window.print()">🖨 Print / PDF</button>
         <button class="btn btn-ghost" id="backHome">← Back to overview</button>
+        ${S.isAdmin ? `<button class="btn btn-danger" id="deleteBtn" style="margin-left:auto">🗑 Delete response</button>` : ''}
       </div>
 
       ${body}
@@ -807,6 +861,10 @@ function renderDetail(r){
   document.getElementById('backHome').addEventListener('click', () => {
     S.current = -1; S.focusSection = -1; setActiveNav('navAll'); renderList(); renderHome();
   });
+  if (S.isAdmin) {
+    const delBtn = document.getElementById('deleteBtn');
+    if (delBtn) delBtn.addEventListener('click', () => deleteResponse(String(r.submitted_at)));
+  }
 
   document.querySelector('.detail-pane').scrollTop = 0;
 }
@@ -940,6 +998,187 @@ function renderBySection(){
 
   document.querySelector('.detail-pane').scrollTop = 0;
 }
+
+// ============ Signed-in user pill ============
+function updateMePill(){
+  const pill = document.getElementById('mePill');
+  pill.style.display = 'flex';
+  const ini = getInitials(S.user);
+  const col = avatarColor(S.user);
+  document.getElementById('meAv').textContent = ini;
+  document.getElementById('meAv').style.background = `linear-gradient(135deg,${col[0]},${col[1]})`;
+  document.getElementById('meName').textContent = S.user;
+  const role = document.getElementById('meRole');
+  if (S.isAdmin) { role.textContent = 'Admin'; role.classList.add('admin'); }
+  else { role.textContent = 'Viewer'; role.classList.remove('admin'); }
+  // Admin-only nav items
+  document.getElementById('navTrash').style.display = S.isAdmin ? '' : 'none';
+}
+
+// ============ Trash view (admin only) ============
+document.getElementById('navTrash').addEventListener('click', openTrash);
+
+async function openTrash(){
+  if (!S.isAdmin) return;
+  setActiveNav('navTrash');
+  S.current = -1;
+  renderList();
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-wrap">
+      <div class="cmp-head">
+        <p class="eyebrow">Admin · Trash</p>
+        <h1>Deleted responses</h1>
+        <p>Restore any accidentally deleted submission — it goes straight back into the main list.</p>
+      </div>
+      <div class="loading-wrap"><div class="loading-card"><div class="spin"></div>
+        <h3 style="font-family:var(--display);color:var(--navy-900);margin:0 0 4px">Loading trash…</h3></div></div>
+    </div>`;
+  try {
+    const u = `${S.url}?user=${encodeURIComponent(S.user)}&pass=${encodeURIComponent(S.pass)}&action=trash`;
+    const res = await fetch(u);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Could not load trash.');
+    S.trash = data.rows || [];
+    S.trashLoaded = true;
+    updateTrashBadge();
+    renderTrash();
+  } catch (err) {
+    document.getElementById('detailContent').innerHTML =
+      `<div class="error-card"><h3>Could not load trash</h3><p>${escapeHtml(err.message)}</p></div>`;
+  }
+}
+
+function updateTrashBadge(){
+  const b = document.getElementById('navTrashCount');
+  if (S.trash.length > 0) { b.style.display = ''; b.textContent = S.trash.length; }
+  else { b.style.display = 'none'; }
+}
+
+function renderTrash(){
+  const items = S.trash.length === 0
+    ? `<div class="empty-card" style="margin:20px 0"><div class="ico">🗑</div><h3>Trash is empty</h3><p>Deleted responses will appear here with a Restore button.</p></div>`
+    : S.trash.slice().reverse().map(r => {
+      const col = avatarColor(r.full_name || r.email || '?');
+      const ini = getInitials(r.full_name || '?');
+      return `
+        <div class="trash-row">
+          <div class="avatar" style="background:linear-gradient(135deg,${col[0]},${col[1]})">${escapeHtml(ini)}</div>
+          <div class="info">
+            <p class="name">${escapeHtml(r.full_name || '(no name)')}</p>
+            <div class="meta">
+              <span>${escapeHtml(r.email || '')}</span>
+              <span class="mono">Submitted ${escapeHtml(formatDate(r.submitted_at))}</span>
+              <span class="mono" style="color:var(--bad)">Deleted ${escapeHtml(formatDate(r._deleted_at))}${r._deleted_by ? ' by '+escapeHtml(r._deleted_by) : ''}</span>
+            </div>
+          </div>
+          <button class="btn btn-gold" data-key="${escapeAttr(String(r.submitted_at))}" data-action="restore">↺ Restore</button>
+        </div>`;
+    }).join('');
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-wrap">
+      <div class="cmp-head">
+        <p class="eyebrow">Admin · Trash</p>
+        <h1>Deleted responses</h1>
+        <p>${S.trash.length} ${S.trash.length===1?'response':'responses'} in trash. Restore to send them back to the main list.</p>
+      </div>
+      ${items}
+    </div>`;
+
+  document.querySelectorAll('[data-action="restore"]').forEach(b => {
+    b.addEventListener('click', () => restoreResponse(b.dataset.key, b));
+  });
+}
+
+function escapeAttr(s){ return escapeHtml(s); }
+
+// ============ Delete / restore / undo ============
+async function deleteResponse(key){
+  if (!S.isAdmin) return;
+  if (!confirm('Delete this response? You can restore it from Trash any time.')) return;
+  try {
+    const u = `${S.url}?user=${encodeURIComponent(S.user)}&pass=${encodeURIComponent(S.pass)}&action=delete&submitted_at=${encodeURIComponent(key)}`;
+    const res = await fetch(u);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Delete failed.');
+    // Remove from local state
+    const victim = S.rows.find(r => isoish(r.submitted_at) === isoish(key));
+    S.rows = S.rows.filter(r => isoish(r.submitted_at) !== isoish(key));
+    S.filtered = S.filtered.filter(r => isoish(r.submitted_at) !== isoish(key));
+    S.current = -1;
+    document.getElementById('navAllCount').textContent = S.rows.length;
+    renderList();
+    renderHome();
+    showToast(`Deleted ${victim ? victim.full_name || 'response' : 'response'}.`, 'Undo', () => undoDelete(key));
+    // Pre-fetch trash in background so the count updates
+    S.trashLoaded = false;
+  } catch (err) {
+    alert('Could not delete: ' + err.message);
+  }
+}
+
+async function undoDelete(key){
+  hideToast();
+  try {
+    const u = `${S.url}?user=${encodeURIComponent(S.user)}&pass=${encodeURIComponent(S.pass)}&action=restore&submitted_at=${encodeURIComponent(key)}`;
+    const res = await fetch(u);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Restore failed.');
+    // Easiest way to resync is to re-fetch the list
+    await loadRows();
+    showToast('Response restored.', null, null, 3000);
+  } catch (err) {
+    alert('Could not restore: ' + err.message);
+  }
+}
+
+async function restoreResponse(key, btn){
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Restoring…'; }
+  try {
+    const u = `${S.url}?user=${encodeURIComponent(S.user)}&pass=${encodeURIComponent(S.pass)}&action=restore&submitted_at=${encodeURIComponent(key)}`;
+    const res = await fetch(u);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Restore failed.');
+    // Remove from local trash
+    S.trash = S.trash.filter(r => isoish(r.submitted_at) !== isoish(key));
+    updateTrashBadge();
+    renderTrash();
+    // Also refetch the main list in background so it reappears there
+    loadRows();
+    showToast('Response restored to the main list.', null, null, 3000);
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '↺ Restore'; }
+    alert('Could not restore: ' + err.message);
+  }
+}
+
+function isoish(v){
+  if (v == null) return '';
+  try { return new Date(v).toISOString(); } catch(e) { return String(v); }
+}
+
+// ============ Toast ============
+let toastTimer = null;
+function showToast(msg, btnLabel, onClick, timeout){
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  const btn = document.getElementById('toastAction');
+  if (btnLabel && onClick) {
+    btn.style.display = '';
+    btn.textContent = btnLabel;
+    btn.onclick = onClick;
+  } else {
+    btn.style.display = 'none';
+  }
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, timeout || 20000);
+}
+function hideToast(){
+  clearTimeout(toastTimer);
+  document.getElementById('toast').classList.remove('show');
+}
+document.getElementById('toastClose').addEventListener('click', hideToast);
 
 // ============ Keyboard navigation ============
 document.addEventListener('keydown', (e) => {
